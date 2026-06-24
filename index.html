@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Editor Catálogo CINNAMOON</title>
+<style>
+:root{--dark:#38103F;--gold:#B87228;--gold2:#E09850;--purple:#7C3CA0;--laven:#9C70B4;--bg:#F2EAFA;--white:#fff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',sans-serif;background:#f5f0fa;color:#2a0a30;min-height:100vh;}
+
+/* TOOLBAR */
+.toolbar{position:sticky;top:0;z-index:100;background:var(--dark);padding:10px 20px;
+  display:flex;align-items:center;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.3);}
+.toolbar img{height:36px;border-radius:50%;}
+.toolbar h1{color:var(--gold2);font-size:16px;letter-spacing:2px;flex:1;}
+.btn{padding:8px 16px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.2s;}
+.btn-gen{background:var(--gold2);color:var(--dark);}
+.btn-gen:hover{background:#c8820a;}
+.btn-exp{background:rgba(255,255,255,.12);color:var(--gold2);border:1px solid rgba(224,152,80,.4);}
+.btn-exp:hover{background:rgba(255,255,255,.2);}
+.btn-imp{background:rgba(255,255,255,.08);color:#ccc;border:1px solid rgba(255,255,255,.15);}
+.btn-imp:hover{background:rgba(255,255,255,.15);}
+#fileInput{display:none;}
+.status{font-size:12px;color:var(--gold2);padding:0 8px;}
+
+/* MAIN */
+.main{max-width:900px;margin:0 auto;padding:24px 16px;}
+
+/* CONTACT CARD */
+.contact-card{background:white;border-radius:12px;margin-bottom:20px;overflow:hidden;
+  box-shadow:0 2px 8px rgba(56,16,63,.08);}
+.contact-card-header{background:var(--purple);padding:10px 16px;display:flex;align-items:center;gap:8px;}
+.contact-card-header span{color:white;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+.contact-card-header small{color:rgba(255,255,255,.5);font-size:11px;margin-left:auto;}
+.contact-fields{display:grid;grid-template-columns:repeat(3,1fr);gap:0;}
+.contact-field{padding:14px 16px;border-right:1px solid #f0eaf5;}
+.contact-field:last-child{border-right:none;}
+.contact-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--laven);margin-bottom:6px;}
+.contact-input{width:100%;padding:7px 10px;border:1.5px solid #e0d0f0;border-radius:8px;
+  font-size:13px;font-weight:600;color:var(--dark);font-family:'Segoe UI',sans-serif;background:#faf7fd;}
+.contact-input:focus{outline:none;border-color:var(--purple);background:white;}
+
+/* CATEGORY CARD */
+.cat-card{background:white;border-radius:12px;margin-bottom:20px;overflow:hidden;
+  box-shadow:0 2px 8px rgba(56,16,63,.08);}
+.cat-card-header{background:var(--dark);padding:10px 16px;display:flex;align-items:center;gap:8px;}
+.cat-card-header span{color:var(--gold2);font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+.cat-count{color:rgba(255,255,255,.45);font-size:11px;margin-left:auto;}
+.cat-active-count{font-size:11px;margin-left:6px;padding:2px 8px;border-radius:10px;
+  background:rgba(224,152,80,.2);color:var(--gold2);}
+
+/* PRODUCT ROW */
+.prod-row{display:grid;grid-template-columns:32px 52px 1fr auto;align-items:center;gap:12px;
+  padding:10px 16px;border-bottom:1px solid #f0eaf5;transition:opacity .2s,background .15s;}
+.prod-row:last-child{border-bottom:none;}
+.prod-row:hover{background:#faf7fd;}
+.prod-row.inactive{opacity:.35;}
+.prod-row.inactive .price-input{pointer-events:none;}
+
+/* CHECKBOX */
+.prod-check{width:20px;height:20px;accent-color:var(--purple);cursor:pointer;flex-shrink:0;}
+
+.prod-thumb{width:52px;height:52px;object-fit:contain;border-radius:6px;background:#f5f0fa;}
+.prod-info{}
+.prod-label{font-size:11px;color:var(--gold);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px;}
+.prod-name-txt{font-size:13px;font-weight:700;color:var(--dark);}
+.prod-det-txt{font-size:11px;color:#999;margin-top:1px;}
+.price-wrap{display:flex;align-items:center;gap:4px;}
+.price-prefix{font-size:15px;font-weight:700;color:var(--gold2);}
+.price-input{width:90px;padding:6px 8px;border:1.5px solid #e0d0f0;border-radius:8px;
+  font-size:15px;font-weight:700;color:var(--dark);text-align:right;
+  font-family:'Segoe UI',sans-serif;background:#faf7fd;}
+.price-input:focus{outline:none;border-color:var(--gold2);background:white;}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <img src="logo.png" alt="CINNAMOON" onerror="this.style.display='none'">
+  <h1>CINNAMOON · EDITOR DE PRECIOS</h1>
+  <span class="status" id="status"></span>
+  <button class="btn btn-imp" onclick="document.getElementById('fileInput').click()">⬆ Importar JSON</button>
+  <button class="btn btn-exp" onclick="exportState()">⬇ Exportar JSON</button>
+  <button class="btn btn-gen" onclick="openCatalog()">🖨 Generar PDF</button>
+  <input type="file" id="fileInput" accept=".json" onchange="importState(this)">
+</div>
+
+<div class="main">
+  <div id="contact-editor"></div>
+  <div id="editor"></div>
+</div>
+
+<script>
+// ===================== DATOS DE PRODUCTOS =====================
+const PRODUCTS = {
+  // PROTEINAS
+  '42': {cat:'PROTEÍNAS', brand:'Proteína (Pote)', name:'BODY ADVANCE', det:'910 grs; 30 serv.; Chocolate, Vainilla, Dulce de Leche o Frutos Rojos', price:28000},
+  '40': {cat:'PROTEÍNAS', brand:'Proteína (Doypack)', name:'ONE FIT', det:'907 grs; 30 serv.; Chocolate o Vainilla', price:38000},
+  '38': {cat:'PROTEÍNAS', brand:'Proteína (Doypack)', name:'ENA', det:'453 grs; 14 serv.; Chocolate o Vainilla', price:38000},
+  '47': {cat:'PROTEÍNAS', brand:'Proteína Vegana', name:'STAR NUTRITION', det:'908 grs; 30 serv.; Chocolate o Vainilla', price:40000},
+  '46': {cat:'PROTEÍNAS', brand:'Proteína Vegana', name:'ENA', det:'779 grs; 25 serv.; Chocolate o Vainilla', price:42000},
+  '41': {cat:'PROTEÍNAS', brand:'Proteína (Doypack)', name:'STAR NUTRITION', det:'908 grs; 30 serv.; Chocolate o Vainilla', price:52000},
+  '45': {cat:'PROTEÍNAS', brand:'Proteína (Pote)', name:'STAR NUTRITION', det:'908 grs; 30 serv.; Chocolate o Vainilla', price:60000},
+  '44': {cat:'PROTEÍNAS', brand:'Proteína (Pote)', name:'ENA', det:'930 grs; 30 serv.; Chocolate o Vainilla', price:71000},
+  '43': {cat:'PROTEÍNAS', brand:'Proteína (Pote)', name:'BODY ADVANCE', det:'3 kg; 100 serv.; Chocolate', price:76000, imgExtra:'transform:scale(1.55);transform-origin:bottom center;'},
+  // CREATINA
+  '22': {cat:'CREATINA', brand:'Creatina (Pote)', name:'BODY ADVANCE', det:'150 grs; 30 serv.', price:11000},
+  '31': {cat:'CREATINA', brand:'BODY ADVANCE', name:'Creatina Power (Pote)', det:'300 grs; 30 serv.; Multifruta o Uva', price:11000},
+  '24': {cat:'CREATINA', brand:'Creatina (Pote)', name:'ONE FIT', det:'200; 40 serv.', price:12000},
+  '775': {cat:'CREATINA', brand:'Creatina en sobres', name:'ENA', det:'75 grs; 15 serv.', price:13000},
+  '13': {cat:'CREATINA', brand:'Creatina (Doypack)', name:'BODY ADVANCE', det:'300 grs; 60 serv.', price:15000},
+  '25': {cat:'CREATINA', brand:'Creatina (Pote)', name:'STAR NUTRITION', det:'150 grs; 30 serv.', price:16000},
+  '23': {cat:'CREATINA', brand:'Creatina (Pote)', name:'GENERATION FIT', det:'300grss; 60 serv.', price:16000},
+  '21': {cat:'CREATINA', brand:'Creatina (Pote)', name:'BODY ADVANCE', det:'300 grs; 60 serv.', price:17000},
+  '29': {cat:'CREATINA', brand:'GENTECH', name:'Creatina en comprimidos masticables', det:'150 comprimidos; 25 serv.; Frutilla', price:19000},
+  '18': {cat:'CREATINA', brand:'Creatina (Doypack)', name:'GOLD NUTRITION', det:'300 grs; 60 serv.', price:21000},
+  '19': {cat:'CREATINA', brand:'Creatina (Doypack)', name:'STAR NUTRITION', det:'300 grs; 60 serv.', price:24000},
+  '20': {cat:'CREATINA', brand:'Creatina (Doypack)', name:'STAR NUTRITION', det:'300 grs; 60 serv.; Multifruta', price:24000},
+  '14': {cat:'CREATINA', brand:'Creatina (Doypack)', name:'ENA', det:'342 grs; 60 serv.; Naranja', price:26000},
+  '15': {cat:'CREATINA', brand:'Creatina (Doypack)', name:'ENA', det:'300 grs; 46 serv.; Multifruta', price:26000},
+  '16': {cat:'CREATINA', brand:'Creatina (Doypack)', name:'ENA', det:'300 grs; 60 serv.', price:26000},
+  '26': {cat:'CREATINA', brand:'Creatina (Pote)', name:'STAR NUTRITION', det:'300 grs; 60 serv.', price:27000},
+  '251': {cat:'CREATINA', brand:'Creatina (Pote)', name:'ONE FIT', det:'500; 100 serv.', price:29000},
+  '30': {cat:'CREATINA', brand:'GOOM', name:'Creatina en gomitas', det:'120 gomitas; 30 serv.', price:36000},
+  '27': {cat:'CREATINA', brand:'Creatina (Pote)', name:'STAR NUTRITION', det:'500 grs; 100 serv.', price:40000},
+  '28': {cat:'CREATINA', brand:'Creatina (Pote)', name:'STAR NUTRITION', det:'1 kg; 200 serv.', price:75000},
+  // PRE-ENTRENO
+  '32': {cat:'PRE-ENTRENO', brand:'STAR NUTRITION', name:'Cafeina', det:'30 cápsulas; 30 serv.', price:8000},
+  '771': {cat:'PRE-ENTRENO', brand:'PULVER', name:'Maltodextrina', det:'1 kg', price:10000},
+  '33': {cat:'PRE-ENTRENO', brand:'STAR NUTRITION', name:'Hydroplus', det:'700 grs; 20 serv.; Blue Razz o Lima', price:17000},
+  '34': {cat:'PRE-ENTRENO', brand:'ENA', name:'Oxido Nítrico', det:'210 grs; 30 serv.; Naranja', price:17000},
+  '772': {cat:'PRE-ENTRENO', brand:'PULVER', name:'Maltodextrina', det:'2 kg', price:18000},
+  '37': {cat:'PRE-ENTRENO', brand:'STAR NUTRITION', name:'Pre-Entrenamiento TNT - Dynamite', det:'240 grs; 30 serv.; Varios sabores', price:22000},
+  '35': {cat:'PRE-ENTRENO', brand:'ENA', name:'Pre-Entrenamiento PreWar', det:'400 grs; 20 serv.; Multifruta', price:29000},
+  '36': {cat:'PRE-ENTRENO', brand:'STAR NUTRITION', name:'Pre-Entrenamiento Pump V8', det:'285 grs; 30 serv.; Varios sabores', price:30000},
+  '773': {cat:'PRE-ENTRENO', brand:'STAR NUTRITION', name:'Citrulina Malato', det:'300 grs; 42 serv.', price:56000},
+  // AMINOACIDOS
+  '4': {cat:'AMINOÁCIDOS', brand:'STAR NUTRITION', name:'Arginina', det:'150 grs; 39 serv.', price:16000},
+  '5': {cat:'AMINOÁCIDOS', brand:'STAR NUTRITION', name:'BCAA 2000', det:'120 cápsulas; 30 serv.', price:16000},
+  '6': {cat:'AMINOÁCIDOS', brand:'STAR NUTRITION', name:'Glutamina', det:'150 grs; 30 serv.', price:16000},
+  '8': {cat:'AMINOÁCIDOS', brand:'STAR NUTRITION', name:'MTOR BCAA', det:'270 grs; 20 serv.; Multifruta o Limón', price:28000},
+  '7': {cat:'AMINOÁCIDOS', brand:'STAR NUTRITION', name:'Glutamina', det:'300 grs; 60 serv.', price:30000},
+  // CONTROL DE PESO
+  '777': {cat:'CONTROL DE PESO', brand:'ONE FIT', name:'Fat Destroyer', det:'90 cápsulas; 30 serv.', price:11000},
+  '11': {cat:'CONTROL DE PESO', brand:'BODY ADVANCE', name:'Quemador de grasas Lipo XTreme', det:'240 grs; 30 serv.', price:12000},
+  '991': {cat:'CONTROL DE PESO', brand:'Carnitina', name:'ENA', det:'60 cápsulas; 20 serv.', price:14000},
+  '9': {cat:'CONTROL DE PESO', brand:'Carnitina', name:'STAR NUTRITION', det:'60 cápsulas; 30 serv.', price:15000},
+  '12': {cat:'CONTROL DE PESO', brand:'STAR NUTRITION', name:'Quemadores Thermo Fuel Max', det:'120 cápsulas; 30 serv.', price:20000},
+  '776': {cat:'CONTROL DE PESO', brand:'STAR NUTRITION', name:'CLA1000', det:'90 cápsulas; 90 serv.', price:23000},
+  '10': {cat:'CONTROL DE PESO', brand:'STAR NUTRITION', name:'Mutant Mass', det:'1,5 kg; 17 serv.; Chocolate o Vainilla', price:41000},
+  // SALUD
+  '50': {cat:'SALUD Y VITAMINAS', brand:'Citrato de Magnesio', name:'ONE FIT', det:'150; 30 serv.', price:8000},
+  '53': {cat:'SALUD Y VITAMINAS', brand:'ONE FIT', name:'Citrato de Potasio', det:'150; 30 serv.', price:8000},
+  '60': {cat:'SALUD Y VITAMINAS', brand:'STAR NUTRITION', name:'Vitamina C', det:'60 cápsulas; 30 serv.', price:8000},
+  '48': {cat:'SALUD Y VITAMINAS', brand:'Citrato de Magnesio', name:'BODY ADVANCE', det:'175 grs; 70 serv.', price:10000},
+  '61': {cat:'SALUD Y VITAMINAS', brand:'ZMA', name:'BODY ADVANCE', det:'60 cápsulas; 45 serv.', price:10000},
+  '51': {cat:'SALUD Y VITAMINAS', brand:'Citrato de Magnesio', name:'STAR NUTRITION', det:'60 cápsulas; 30 serv.', price:15000},
+  '59': {cat:'SALUD Y VITAMINAS', brand:'BODY ADVANCE', name:'Testo Pro Max', det:'240 grs; 30 serv.; Uva', price:16000},
+  '611': {cat:'SALUD Y VITAMINAS', brand:'ZMA', name:'STAR NUTRITION', det:'90 cápsulas; 45 serv.', price:16000},
+  '49': {cat:'SALUD Y VITAMINAS', brand:'Citrato de Magnesio', name:'ENA', det:'192 grs; 60 serv.; Limonada', price:17000},
+  '56': {cat:'SALUD Y VITAMINAS', brand:'ENA', name:'Multivitaminicos', det:'60 cápsulas; 60 serv.', price:17000},
+  '54': {cat:'SALUD Y VITAMINAS', brand:'STAR NUTRITION', name:'Colágeno', det:'210 grs; 20 serv.; Frutos Rojos o Limón', price:19000},
+  '57': {cat:'SALUD Y VITAMINAS', brand:'STAR NUTRITION', name:'Multivitamínicos', det:'60 cápsulas; 60 serv.', price:20000},
+  '55': {cat:'SALUD Y VITAMINAS', brand:'STAR NUTRITION', name:'Colágeno Sport', det:'360 grs; 30 serv.; Naranja', price:21000},
+  '52': {cat:'SALUD Y VITAMINAS', brand:'Citrato de Magnesio', name:'STAR NUTRITION', det:'500 grs; 142 serv.; Frutos Rojos', price:28000},
+  '58': {cat:'SALUD Y VITAMINAS', brand:'STAR NUTRITION', name:'Omega 3', det:'60 cápsulas; 30 serv.', price:32000},
+  // SNACKS
+  '68': {cat:'SNACKS', brand:'ENA', name:'Barra proteíca', det:'1 unidad serv.; Chocolate, Frutilla, Banana Split', price:1900},
+  '774': {cat:'SNACKS', brand:'GRANGER', name:'Cookies Proteicas', det:'220 grs; 16 serv.; Vainilla + Chips', price:7000},
+  '71': {cat:'SNACKS', brand:'GRANGER', name:'Pancakes KETO', det:'200 grs; 8 serv.; Vainilla', price:9000},
+  '70': {cat:'SNACKS', brand:'GRANGER', name:'Cupcakes Proteícos', det:'360 grs; 8 serv.; Chocolate', price:12000},
+  '72': {cat:'SNACKS', brand:'GRANGER', name:'Pancakes Proteícos', det:'400 grs; 16 serv.; Chocolate o Vainilla', price:13000},
+  '69': {cat:'SNACKS', brand:'ENA', name:'Caja de barras proteícas', det:'16 unidades serv.; Chocolate, Frutilla, Banana Split', price:27000},
+  // SHAKERS
+  '62': {cat:'SHAKERS', name:'ENA', price:6000, simple:true},
+  '64': {cat:'SHAKERS', name:'GOLD NUTRITION', price:7000, simple:true},
+  '65': {cat:'SHAKERS', name:'GOLD NUTRITION', price:8000, simple:true},
+  '778': {cat:'SHAKERS', name:'ENA', price:9000, simple:true},
+  '67': {cat:'SHAKERS', name:'XBODY', price:9000, simple:true},
+  '66': {cat:'SHAKERS', name:'STAR NUTRITION', price:9000, simple:true},
+  '63': {cat:'SHAKERS', name:'GENTECH', price:11000, simple:true},
+  // ACCESORIOS
+  '2': {cat:'ACCESORIOS', name:'Scoops 5gr - 7.5gr - 10gr', price:1500, simple:true},
+  '3': {cat:'ACCESORIOS', name:'Straps', price:12000, simple:true},
+  '1': {cat:'ACCESORIOS', name:'Guantes', price:15000, simple:true},
+};
+
+// Estructura de páginas del catálogo (orden y layout de cada página)
+const PAGES = [
+  {type:'cover'},
+  {type:'cat', name:'PROTEINAS', slogan:'"La base de todo cambio"', grid:'--imgh:58mm;--rgap:2mm;--cgap:5mm;', refs:['42','40','38','47','46','41','45','44','43'], sz:{b:'8.0pt',n:'11.0pt',d:'7.5pt',p:'13.5pt'}},
+  {type:'cat', name:'CREATINA', slogan:'"Potencia cada repetición"', grid:'--imgh:58mm;--rgap:2mm;--cgap:5mm;', refs:['22','31','24','775','13','25','23','21','29'], sz:{b:'8.0pt',n:'11.0pt',d:'7.5pt',p:'13.5pt'}},
+  {type:'cont', grid:'--imgh:40mm;--rgap:2mm;--cgap:5mm;', refs:['18','19','20','14','15','16','26','251','30','27','28'], sz:{b:'7.0pt',n:'9.0pt',d:'6.5pt',p:'11.0pt'}},
+  {type:'cat', name:'PRE-ENTRENO Y ENERGÍA', slogan:'"Arrancá con todo"', grid:'--imgh:60mm;--rgap:2mm;--cgap:5mm;', refs:['32','771','33','34','772','37','35','36','773'], sz:{b:'8.0pt',n:'11.0pt',d:'7.5pt',p:'13.5pt'}},
+  {type:'cat', name:'AMINOACIDOS', slogan:'"Recuperá más rápido"', grid:'--imgh:67mm;--rgap:2mm;--cgap:5mm;', refs:['4','5','6','8','7'], sz:{b:'8.0pt',n:'11.0pt',d:'7.5pt',p:'13.5pt'}},
+  {type:'cat', name:'Control de Peso y Definición', slogan:'"Tu cuerpo, tu meta"', grid:'--imgh:55mm;--rgap:2mm;--cgap:5mm;', refs:['777','11','991','9','12','776','10'], sz:{b:'8.0pt',n:'11.0pt',d:'7.5pt',p:'13.5pt'}},
+  {type:'cat', name:'SALUD, BIENESTAR Y VITAMINAS', slogan:'"Cuidate desde adentro"', grid:'--imgh:58mm;--rgap:2mm;--cgap:5mm;', refs:['50','53','60','48','61','51','59','611','49'], sz:{b:'8.0pt',n:'11.0pt',d:'7.5pt',p:'13.5pt'}},
+  {type:'cont', grid:'--imgh:67mm;--rgap:2mm;--cgap:5mm;', refs:['56','54','57','55','52','58'], sz:{b:'8.0pt',n:'11.0pt',d:'7.5pt',p:'13.5pt'}},
+  {type:'cat', name:'SNACKS', slogan:'"Rico y nutritivo, sin culpa"', grid:'--imgh:67mm;--rgap:2mm;--cgap:5mm;', refs:['68','774','71','70','72','69'], sz:{b:'8.0pt',n:'11.0pt',d:'7.5pt',p:'13.5pt'}},
+  {type:'cat', name:'SHAKERS', slogan:'"Llevá tu ritual a todos lados"', grid:'--imgh:55mm;--rgap:2mm;--cgap:5mm;', refs:['62','64','65','778','67','66','63'], sz:{b:'8.0pt',n:'11.0pt',d:'7.5pt',p:'13.5pt'}},
+  {type:'cat', name:'ACCESORIOS', slogan:'"Equipate para rendir"', grid:'--imgh:67mm;--rgap:3mm;--cgap:5mm;', refs:['2','3','1'], sz:{b:'8.0pt',n:'11.0pt',d:'7.5pt',p:'13.5pt'}},
+  {type:'back'},
+];
+
+// Datos de contacto por defecto
+const DEFAULT_CONTACT = {
+  instagram: '@cinnamoonsuplementos',
+  whatsapp:  '223 694-4699',
+  ciudad:    'Mar del Plata',
+};
+
+// ===================== HELPERS =====================
+function fmtPrice(n){ return n.toLocaleString('en-US'); }
+function parsePrice(s){ return parseInt(String(s).replace(/[^0-9]/g,''))||0; }
+function setStatus(msg){
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  setTimeout(() => el.textContent = '', 3000);
+}
+function isActive(ref){
+  const cb = document.getElementById('active_'+ref);
+  return cb ? cb.checked : true;
+}
+function getContact(){
+  return {
+    instagram: document.getElementById('c_instagram')?.value.trim() || DEFAULT_CONTACT.instagram,
+    whatsapp:  document.getElementById('c_whatsapp')?.value.trim()  || DEFAULT_CONTACT.whatsapp,
+    ciudad:    document.getElementById('c_ciudad')?.value.trim()     || DEFAULT_CONTACT.ciudad,
+  };
+}
+
+// ===================== RENDER CONTACT EDITOR =====================
+function renderContactEditor(contact){
+  const c = contact || DEFAULT_CONTACT;
+  document.getElementById('contact-editor').innerHTML = `
+  <div class="contact-card">
+    <div class="contact-card-header">
+      <span>Datos de contacto</span>
+      <small>Se muestran en portada y contraportada</small>
+    </div>
+    <div class="contact-fields">
+      <div class="contact-field">
+        <div class="contact-label">Instagram</div>
+        <input class="contact-input" id="c_instagram" type="text" value="${c.instagram}" placeholder="@usuario">
+      </div>
+      <div class="contact-field">
+        <div class="contact-label">WhatsApp</div>
+        <input class="contact-input" id="c_whatsapp" type="text" value="${c.whatsapp}" placeholder="223 000-0000">
+      </div>
+      <div class="contact-field">
+        <div class="contact-label">Ciudad / Ubicación</div>
+        <input class="contact-input" id="c_ciudad" type="text" value="${c.ciudad}" placeholder="Ciudad">
+      </div>
+    </div>
+  </div>`;
+}
+
+// ===================== RENDER EDITOR =====================
+function toggleProduct(ref){
+  const row = document.getElementById('row_'+ref);
+  const cb  = document.getElementById('active_'+ref);
+  if(row) row.classList.toggle('inactive', !cb.checked);
+  updateCatCount(PRODUCTS[ref].cat);
+}
+
+function updateCatCount(cat){
+  // Actualiza el contador "X/Y activos" en el header de la categoría
+  const allInCat = Object.entries(PRODUCTS).filter(([,p]) => p.cat === cat).map(([r]) => r);
+  const activeCount = allInCat.filter(r => isActive(r)).length;
+  const el = document.getElementById('count_'+cat.replace(/\s/g,'_'));
+  if(el) el.textContent = `${activeCount}/${allInCat.length} activos`;
+}
+
+function renderEditor(activos){
+  const catOrder = ['PROTEÍNAS','CREATINA','PRE-ENTRENO','AMINOÁCIDOS','CONTROL DE PESO','SALUD Y VITAMINAS','SNACKS','SHAKERS','ACCESORIOS'];
+  const groups = {};
+  catOrder.forEach(c => groups[c] = []);
+  Object.entries(PRODUCTS).forEach(([ref, p]) => {
+    if(groups[p.cat]) groups[p.cat].push(ref);
+  });
+
+  let html = '';
+  catOrder.forEach(cat => {
+    const refs = groups[cat];
+    if(!refs.length) return;
+    const countId = 'count_' + cat.replace(/\s/g,'_');
+    html += `<div class="cat-card">
+      <div class="cat-card-header">
+        <span>${cat}</span>
+        <span id="${countId}" class="cat-active-count"></span>
+        <span class="cat-count">${refs.length} productos</span>
+      </div>`;
+    refs.forEach(ref => {
+      const p = PRODUCTS[ref];
+      const checked = (activos && activos[ref] === false) ? '' : 'checked';
+      const inactive = checked ? '' : ' inactive';
+      const label = p.brand || '';
+      html += `<div class="prod-row${inactive}" id="row_${ref}">
+        <input class="prod-check" type="checkbox" id="active_${ref}" ${checked}
+          onchange="toggleProduct('${ref}')">
+        <img class="prod-thumb" src="imagenes_proc/${ref}.png" alt="${p.name}"
+          onerror="this.style.display='none'">
+        <div class="prod-info">
+          ${label ? `<div class="prod-label">${label}</div>` : ''}
+          <div class="prod-name-txt">${p.name}</div>
+          ${p.det ? `<div class="prod-det-txt">${p.det}</div>` : ''}
+        </div>
+        <div class="price-wrap">
+          <span class="price-prefix">$</span>
+          <input class="price-input" type="text" id="price_${ref}"
+            value="${fmtPrice(p.price)}"
+            onblur="formatInput(this)"
+            onkeydown="if(event.key==='Enter')this.blur()">
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  document.getElementById('editor').innerHTML = html;
+  // Actualizar contadores
+  catOrder.forEach(cat => updateCatCount(cat));
+}
+
+function formatInput(el){
+  const n = parsePrice(el.value);
+  if(n > 0) el.value = fmtPrice(n);
+}
+
+// ===================== JSON EXPORT / IMPORT =====================
+function getFullState(){
+  const precios = {}, activos = {};
+  Object.keys(PRODUCTS).forEach(ref => {
+    const priceEl = document.getElementById('price_'+ref);
+    if(priceEl) precios[ref] = parsePrice(priceEl.value);
+    const activeEl = document.getElementById('active_'+ref);
+    if(activeEl && !activeEl.checked) activos[ref] = false;
+    // Solo guardamos los que están desactivados (los activos se omiten = true por defecto)
+  });
+  return {
+    fecha:    new Date().toISOString().slice(0,10),
+    contacto: getContact(),
+    precios,
+    activos,
+  };
+}
+
+function exportState(){
+  const state = getFullState();
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `catalogo_cinnamoon_${state.fecha}.json`;
+  a.click();
+  setStatus('✓ JSON exportado');
+}
+
+function importState(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // Precios
+      const precios = data.precios || data;
+      let updatedP = 0;
+      Object.entries(precios).forEach(([ref, price]) => {
+        const el = document.getElementById('price_'+ref);
+        if(el){ el.value = fmtPrice(price); updatedP++; }
+      });
+
+      // Activos / inactivos
+      const activos = data.activos || {};
+      Object.keys(PRODUCTS).forEach(ref => {
+        const cb  = document.getElementById('active_'+ref);
+        const row = document.getElementById('row_'+ref);
+        if(!cb) return;
+        const isOn = activos[ref] !== false; // si no está en activos, es true
+        cb.checked = isOn;
+        row.classList.toggle('inactive', !isOn);
+      });
+      Object.keys(PRODUCTS).forEach(ref => updateCatCount(PRODUCTS[ref].cat));
+
+      // Contacto
+      if(data.contacto){
+        const f = ['instagram','whatsapp','ciudad'];
+        f.forEach(k => {
+          const el = document.getElementById('c_'+k);
+          if(el && data.contacto[k]) el.value = data.contacto[k];
+        });
+      }
+
+      setStatus(`✓ ${updatedP} precios · contacto · visibilidad cargados`);
+    } catch(err) {
+      setStatus('✗ Error al leer JSON');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// ===================== GENERADOR DE CATÁLOGO =====================
+const CATALOG_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=Cormorant+Garamond:ital,wght@0,600;1,400;1,600&display=swap');
+:root{--bg:#F2EAFA;--dark:#38103F;--gold:#B87228;--gold2:#E09850;--purple:#7C3CA0;--laven:#9C70B4;--cream:#F0E0C0;--hdr:#2C0C38;--white:#fff;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+@page{size:A4;margin:0;}
+body{background:#bbb;}
+.page{width:210mm;height:297mm;background:var(--bg);overflow:hidden;position:relative;page-break-after:always;break-after:page;display:flex;flex-direction:column;}
+.page::before{content:'';position:absolute;top:-28mm;right:-28mm;width:90mm;height:90mm;border-radius:50%;background:radial-gradient(circle,rgba(220,195,245,.68) 0%,transparent 68%);pointer-events:none;z-index:1;}
+.page::after{content:'';position:absolute;bottom:-22mm;left:-22mm;width:78mm;height:78mm;border-radius:50%;background:radial-gradient(circle,rgba(220,195,245,.60) 0%,transparent 68%);pointer-events:none;z-index:1;}
+.page-logo{position:absolute;top:4.5mm;right:5mm;width:13mm;height:13mm;border-radius:50%;object-fit:cover;z-index:10;box-shadow:0 2px 7px rgba(56,16,63,.18);border:.8px solid rgba(224,152,80,.45);}
+.cover-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7mm 12mm 4mm;position:relative;z-index:2;}
+.cover-body::before{content:'';position:absolute;top:2mm;right:6mm;width:80mm;height:80mm;border-radius:50%;background:radial-gradient(circle,rgba(218,192,245,.75) 0%,transparent 68%);}
+.cover-body::after{content:'';position:absolute;bottom:10mm;left:8mm;width:60mm;height:60mm;border-radius:50%;background:radial-gradient(circle,rgba(218,192,245,.62) 0%,transparent 70%);}
+.cover-wm{position:absolute;font-family:'Josefin Sans',sans-serif;font-size:76pt;font-weight:700;color:rgba(210,185,232,.17);letter-spacing:4px;user-select:none;pointer-events:none;bottom:14mm;right:-2mm;z-index:0;}
+.cover-logo{width:52mm;height:52mm;border-radius:50%;object-fit:cover;box-shadow:0 6px 32px rgba(56,16,63,.22),0 0 0 .8mm rgba(224,152,80,.45);margin-bottom:4mm;position:relative;z-index:1;}
+.cover-brand{font-family:'Josefin Sans',sans-serif;font-size:34pt;font-weight:700;color:var(--dark);letter-spacing:9px;text-transform:uppercase;margin-bottom:2mm;position:relative;z-index:1;}
+.cover-rule{width:50mm;height:2px;background:linear-gradient(90deg,transparent,var(--gold2) 30%,var(--gold2) 70%,transparent);margin:0 auto 3mm;}
+.cover-slogan{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14pt;color:var(--purple);letter-spacing:.5px;margin-bottom:2.5mm;position:relative;z-index:1;text-align:center;}
+.cover-tagline{font-family:'Josefin Sans',sans-serif;font-weight:700;font-size:9.5pt;letter-spacing:4px;text-transform:uppercase;margin-bottom:4mm;position:relative;z-index:1;color:var(--gold2);border-top:1px solid rgba(200,160,70,.35);border-bottom:1px solid rgba(200,160,70,.35);padding:1.5mm 7mm;}
+.cover-stats{display:flex;margin-bottom:5mm;position:relative;z-index:1;background:rgba(255,255,255,.65);border-radius:14px;padding:3mm 2mm;box-shadow:0 3px 14px rgba(56,16,63,.09);}
+.cover-stat{display:flex;flex-direction:column;align-items:center;padding:0 6mm;}
+.cover-stat-num{font-family:'Josefin Sans',sans-serif;font-weight:700;font-size:22pt;color:var(--dark);line-height:1.1;}
+.cover-stat-lbl{font-family:'DM Sans',sans-serif;font-size:5.5pt;letter-spacing:2px;color:var(--laven);text-transform:uppercase;}
+.cover-stat-sep{width:1px;background:linear-gradient(180deg,transparent,var(--gold2),transparent);align-self:stretch;margin:2mm 0;}
+.cover-pills{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;max-width:160mm;position:relative;z-index:1;}
+.pill{background:var(--dark);color:var(--cream);font-family:'DM Sans',sans-serif;font-size:6.5pt;letter-spacing:1.5px;padding:3.5px 11px;border-radius:20px;text-transform:uppercase;}
+.cover-foot{background:var(--hdr);padding:6mm 16mm;display:flex;justify-content:space-around;align-items:center;flex-shrink:0;position:relative;z-index:2;}
+.cover-foot::before{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,var(--gold2),transparent);}
+.cat-hdr{background:var(--hdr);padding:4mm 10mm 3.5mm 14mm;position:relative;overflow:hidden;z-index:2;flex-shrink:0;}
+.cat-bar{position:absolute;left:0;top:0;width:5px;height:100%;background:var(--gold2);border-radius:0 3px 3px 0;}
+.cat-name{font-family:'Josefin Sans',sans-serif;font-weight:700;color:white;letter-spacing:2.5px;text-transform:uppercase;line-height:1;margin-bottom:2mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:148mm;position:relative;z-index:1;}
+.cat-rule{width:80mm;height:.8px;background:linear-gradient(90deg,var(--gold2),transparent);margin-bottom:1.5mm;}
+.cat-slogan{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--gold2);position:relative;z-index:1;}
+.prods{flex:1;padding:4mm 8mm 3mm;display:flex;align-items:flex-start;position:relative;z-index:2;}
+.grid{display:grid;width:100%;grid-template-columns:repeat(3,1fr);gap:var(--rgap,3mm) var(--cgap,5mm);align-items:start;}
+.product{display:flex;flex-direction:column;align-items:center;text-align:center;}
+.prod-img{width:100%;display:flex;align-items:flex-end;justify-content:center;height:var(--imgh,60mm);padding:0 2mm 1mm;}
+.prod-img img{max-width:100%;max-height:var(--imgh,60mm);object-fit:contain;filter:drop-shadow(0 3px 8px rgba(56,16,63,.14));}
+.prod-line{width:28%;height:.9px;background:var(--gold2);margin:2.2mm auto 1.5mm;opacity:.72;}
+.prod-brand{font-family:'Josefin Sans',sans-serif;letter-spacing:1.2px;color:var(--gold);text-transform:uppercase;margin-bottom:1mm;line-height:1.2;}
+.prod-name{font-family:'Josefin Sans',sans-serif;font-weight:700;color:var(--dark);line-height:1.25;margin-bottom:1.2mm;}
+.prod-det{font-family:'DM Sans',sans-serif;color:var(--laven);line-height:1.35;margin-bottom:1mm;}
+.prod-price{font-family:'Josefin Sans',sans-serif;font-weight:700;color:var(--gold);}
+.c-row{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.c-lbl{font-family:'DM Sans',sans-serif;font-size:6.5pt;letter-spacing:2px;color:rgba(240,224,192,.55);text-transform:uppercase;}
+.c-val{font-family:'Josefin Sans',sans-serif;font-size:9pt;font-weight:600;color:var(--gold2);letter-spacing:.3px;}
+.back-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10mm 15mm;position:relative;z-index:2;}
+.back-wm{position:absolute;font-family:'Josefin Sans',sans-serif;font-size:52pt;font-weight:700;letter-spacing:10px;color:rgba(210,185,232,.36);text-transform:uppercase;white-space:nowrap;left:50%;transform:translateX(-50%);user-select:none;pointer-events:none;}
+.back-logo{width:46mm;height:46mm;border-radius:50%;object-fit:cover;box-shadow:0 5px 22px rgba(56,16,63,.15),0 0 0 .7mm rgba(224,152,80,.35);margin-bottom:6mm;position:relative;z-index:1;}
+.back-slogan{font-family:'Josefin Sans',sans-serif;font-size:19pt;font-weight:700;color:var(--dark);letter-spacing:3px;text-transform:uppercase;margin-bottom:2mm;position:relative;z-index:1;}
+.back-rule{width:38mm;height:1.5px;background:linear-gradient(90deg,transparent,var(--gold2) 30%,var(--gold2) 70%,transparent);margin:0 auto 3.5mm;}
+.back-label{font-family:'DM Sans',sans-serif;font-size:7.5pt;letter-spacing:3.5px;color:var(--laven);text-transform:uppercase;margin-bottom:6mm;}
+.c-cards{display:flex;gap:5mm;position:relative;z-index:1;}
+.c-card{background:rgba(255,255,255,.92);border-radius:10px;padding:4.5mm 7mm;min-width:44mm;text-align:center;box-shadow:0 4px 18px rgba(56,16,63,.10);border-top:2.5px solid var(--gold2);}
+.c-card .c-lbl{display:block;margin-bottom:2mm;color:var(--laven);}
+.c-card .c-val{color:var(--dark);font-size:9.5pt;}
+.back-foot{background:var(--hdr);padding:4.5mm 16mm;text-align:center;position:relative;z-index:2;flex-shrink:0;}
+.back-foot::before{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,var(--gold2),transparent);}
+.back-foot p{font-family:'DM Sans',sans-serif;font-size:7pt;letter-spacing:2px;color:rgba(240,224,192,.6);text-transform:uppercase;}
+@media print{.no-print{display:none!important;}}
+`;
+
+function buildProductHTML(ref, prices, sz){
+  const p = PRODUCTS[ref];
+  if(!p) return '';
+  const rawPrice = prices[ref] !== undefined ? prices[ref] : p.price;
+  const priceStr = '$' + fmtPrice(rawPrice);
+  const imgExtra = p.imgExtra ? ` style="${p.imgExtra}"` : '';
+  const imgTag = `<img src="imagenes_proc/${ref}.png" alt="${p.name}" loading="eager"${imgExtra}>`;
+  if(p.simple){
+    return `<div class="product">
+  <div class="prod-img">${imgTag}</div>
+  <div class="prod-line"></div>
+  <div class="prod-name" style="font-size:${sz.n}">${p.name}</div>
+  <div class="prod-price" style="font-size:${sz.p}">${priceStr}</div>
+</div>`;
+  }
+  const detLine = p.det ? `<div class="prod-det" style="font-size:${sz.d}">${p.det}</div>` : '';
+  return `<div class="product">
+  <div class="prod-img">${imgTag}</div>
+  <div class="prod-line"></div><div class="prod-brand" style="font-size:${sz.b}">${p.brand||''}</div>
+  <div class="prod-name" style="font-size:${sz.n}">${p.name}</div>
+  ${detLine}
+  <div class="prod-price" style="font-size:${sz.p}">${priceStr}</div>
+</div>`;
+}
+
+function buildCatalogHTML(state){
+  const base    = window.location.href.replace(/\/[^/]*$/, '/');
+  const logoSrc = 'logo.png';
+  const prices  = state.precios  || {};
+  const activos = state.activos  || {};
+  const c       = state.contacto || DEFAULT_CONTACT;
+
+  // Filtra los refs desactivados de cada página
+  function activeRefs(refs){
+    return refs.filter(r => activos[r] !== false);
+  }
+
+  function contactFoot(){
+    return `<div class="cover-foot">
+  <div class="c-row"><span class="c-lbl">INSTAGRAM</span><span class="c-val">${c.instagram}</span></div>
+  <div class="c-row"><span class="c-lbl">WHATSAPP</span><span class="c-val">${c.whatsapp}</span></div>
+  <div class="c-row"><span class="c-lbl">UBICACIÓN</span><span class="c-val">${c.ciudad}</span></div>
+</div>`;
+  }
+
+  const coverPage = `<div class="page">
+  <div class="cover-body">
+    <div class="cover-wm">2026</div>
+    <img class="cover-logo" src="${logoSrc}" alt="CINNAMOON">
+    <div class="cover-brand">CINNAMOON</div>
+    <div class="cover-rule"></div>
+    <div class="cover-slogan">Rendí más, viví mejor</div>
+    <div class="cover-tagline">TODO PARA TU BIENESTAR</div>
+    <div class="cover-stats">
+      <div class="cover-stat"><span class="cover-stat-num">80+</span><span class="cover-stat-lbl">Productos</span></div>
+      <div class="cover-stat-sep"></div>
+      <div class="cover-stat"><span class="cover-stat-num">9</span><span class="cover-stat-lbl">Categorías</span></div>
+      <div class="cover-stat-sep"></div>
+      <div class="cover-stat"><span class="cover-stat-num">10+</span><span class="cover-stat-lbl">Marcas</span></div>
+    </div>
+    <div class="cover-pills"><span class="pill">PROTEÍNAS</span><span class="pill">CREATINA</span><span class="pill">PRE-ENTRENO</span><span class="pill">VITAMINAS</span><span class="pill">SNACKS</span><span class="pill">SHAKERS</span><span class="pill">ACCESORIOS</span></div>
+  </div>
+  ${contactFoot()}
+</div>`;
+
+  const backPage = `<div class="page">
+  <div class="back-body">
+    <div class="back-wm">CINNAMOON</div>
+    <img class="back-logo" src="${logoSrc}" alt="CINNAMOON">
+    <div class="back-slogan">Rendí más, viví mejor</div>
+    <div class="back-rule"></div>
+    <div class="back-label">Encontranos en</div>
+    <div class="c-cards">
+      <div class="c-card"><span class="c-lbl">INSTAGRAM</span><span class="c-val">${c.instagram}</span></div>
+      <div class="c-card"><span class="c-lbl">WHATSAPP</span><span class="c-val">${c.whatsapp}</span></div>
+      <div class="c-card"><span class="c-lbl">UBICACIÓN</span><span class="c-val">${c.ciudad}</span></div>
+    </div>
+  </div>
+  <div class="back-foot"><p>CINNAMOON SUPLEMENTOS &nbsp;·&nbsp; ${c.ciudad.toUpperCase()} &nbsp;·&nbsp; 2026</p></div>
+</div>`;
+
+  let pages = '';
+  for(const page of PAGES){
+    if(page.type === 'cover'){ pages += coverPage; continue; }
+    if(page.type === 'back') { pages += backPage;  continue; }
+
+    const refs = activeRefs(page.refs);
+    if(!refs.length) continue; // omite la página si no hay productos activos
+
+    const hdr = page.type === 'cat' ? `
+  <div class="cat-hdr">
+    <div class="cat-bar"></div>
+    <div class="cat-name" style="font-size:20pt">${page.name}</div>
+    <div class="cat-rule"></div>
+    <div class="cat-slogan" style="font-size:10.5pt">${page.slogan}</div>
+  </div>` : '';
+
+    const prods = refs.map(r => buildProductHTML(r, prices, page.sz)).join('\n');
+    pages += `<div class="page">
+  <img class="page-logo" src="${logoSrc}" alt="CINNAMOON">${hdr}
+  <div class="prods">
+    <div class="grid" style="${page.grid}">
+      ${prods}
+    </div>
+  </div>
+</div>`;
+  }
+
+  return `<!DOCTYPE html><html lang="es"><head>
+<meta charset="UTF-8">
+<title>Catálogo CINNAMOON 2026</title>
+<base href="${base}">
+<style>${CATALOG_CSS}</style>
+</head><body>
+${pages}
+<script>
+window.onload = function(){ setTimeout(function(){ window.print(); }, 1200); };
+<\/script>
+</body></html>`;
+}
+
+function openCatalog(){
+  const state = getFullState();
+  const html  = buildCatalogHTML(state);
+  const w = window.open('', '_blank');
+  if(!w){ alert('Bloqueaste ventanas emergentes. Permitilas para este sitio.'); return; }
+  w.document.write(html);
+  w.document.close();
+  setStatus('✓ Catálogo generado');
+}
+
+// ===================== INIT =====================
+renderContactEditor();
+renderEditor();
+</script>
+</body>
+</html>
